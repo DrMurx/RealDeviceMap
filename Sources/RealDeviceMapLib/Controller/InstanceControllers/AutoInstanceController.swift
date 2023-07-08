@@ -88,6 +88,7 @@ class AutoInstanceController: InstanceControllerProto {
     let minTimer: UInt16 = 1500
     let sleepTimeAutoPokemon: UInt16 = 10
     let bufferTimeDistance: UInt16 = 20
+    let questBootstrapCellExpirationDays: Int = 10
 
     init(name: String, multiPolygon: MultiPolygon, type: AutoType, minLevel: UInt8, maxLevel: UInt8,
          spinLimit: Int = 1000, delayLogout: Int = 900, timezoneOffset: Int = 0, questMode: QuestMode = .normal,
@@ -230,9 +231,10 @@ class AutoInstanceController: InstanceControllerProto {
 
         var missingCellIDs = [S2CellId]()
         var done = false
+        let cellCutoffDate = Date().addingTimeInterval(questBootstrapCellExpirationDays * -86400)
         while !done {
             do {
-                let cells = try Cell.getInIDs(ids: allCellIDs)
+                let cells = try Cell.getInIDs(ids: allCellIDs, lastUpdatedAfter: cellCutoffDate)
                 for cellID in allCells {
                     if !cells.contains(where: { (cell) -> Bool in
                         return cell.id == cellID.uid

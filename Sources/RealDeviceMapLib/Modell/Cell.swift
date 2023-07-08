@@ -144,7 +144,7 @@ class Cell: JSONConvertibleObject {
 
     }
 
-    public static func getInIDs(mysql: MySQL?=nil, ids: [UInt64]) throws -> [Cell] {
+    public static func getInIDs(mysql: MySQL?=nil, ids: [UInt64], lastUpdatedAfter: Date?=nil) throws -> [Cell] {
 
         if ids.count > 10000 {
             var result = [Cell]()
@@ -174,16 +174,28 @@ class Cell: JSONConvertibleObject {
         }
         inSQL += "?)"
 
+        let cutoffSQL: String
+        if lastUpdatedAfter != nil {
+            cutoffSQL = "AND updated > ?"
+        } else {
+            cutoffSQL = ""
+        }
+
+
         let sql = """
         SELECT id, level, center_lat, center_lon, updated
         FROM s2cell
         WHERE id IN \(inSQL)
+              \(cutoffSQL)
         """
 
         let mysqlStmt = MySQLStmt(mysql)
         _ = mysqlStmt.prepare(statement: sql)
         for id in ids {
             mysqlStmt.bindParam(id)
+        }
+        if lastUpdatedAfter != nil {
+            mysqlStmt.bindParam(lastUpdatedAfter.timeIntervalSince1970)
         }
 
         guard mysqlStmt.execute() else {
